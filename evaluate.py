@@ -26,8 +26,18 @@ def evaluate_result(output,gt,device):
             for i in range(0,n_gt):
                 tarea=gt[i,2]*gt[i,3]
                 area=output[j,3]*output[j,4]
-                rect1=((output[j,1], output[j,2]), (output[j,3], output[j,4]), output[j,5]*180/3.14)
-                rect2=((gt[i,0],gt[i,1]),(gt[i,2], gt[i,3]),gt[i,4]*180/3.14)
+                #rect1=((output[j,1], output[j,2]), (output[j,3], output[j,4]), output[j,5]*180/3.14)
+                #rect2=((gt[i,0],gt[i,1]),(gt[i,2], gt[i,3]),gt[i,4]*180/3.14)
+                rect1 = ((float(output[j, 1].item()), float(output[j, 2].item())),
+                         (float(output[j, 3].item()), float(output[j, 4].item())),
+                         float(output[j, 5].item()) * 180 / 3.141592)
+
+                rect2 = ((float(gt[i, 0].item()), float(gt[i, 1].item())),
+                (float(gt[i, 2].item()), float(gt[i, 3].item())),
+                float(gt[i, 4].item()) * 180 / 3.141592)
+
+
+
                 int_pts=cv2.rotatedRectangleIntersection(rect1,rect2)[1]
                 if int_pts is not None:
                     order_pts = cv2.convexHull(int_pts, returnPoints=True)

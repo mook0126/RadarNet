@@ -7,8 +7,8 @@ plt.style.use('seaborn-whitegrid')
 palette = plt.get_cmap('Set1')
 plt.rcParams['savefig.dpi'] = 300 
 plt.rcParams['figure.dpi'] = 300 
-loss_path="/home/toytiny/Desktop/RadarNet2/loss.txt"
-save_path="/home/toytiny/Desktop/RadarNet2/loss_figure/"
+loss_path="/home/mook/RadarNet-pytorch/train_result/loss.txt"
+save_path="/home/mook/RadarNet-pytorch/train_result/loss_figure/"
 if not os.path.exists(save_path):
     os.mkdir(save_path)
 loss_iter=[]

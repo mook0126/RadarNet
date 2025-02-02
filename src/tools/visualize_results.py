@@ -26,10 +26,13 @@ from pointcloud import LidarPointCloud2 as LidarPointCloud
 from pointcloud import RadarPointCloud2 as RadarPointCloud
 
 LIDAR_LIST=['LIDAR_TOP']
-DATA_PATH = '/home/toytiny/Desktop/RadarNet/data/nuscenes/'
+DATA_PATH = '/home/mook/RadarNet-pytorch/data/nuscenes/'
+
+
+
 SPLITS = {
           'mini_val': 'v1.0-mini',
-          #'mini_train': 'v1.0-mini',
+          'mini_train': 'v1.0-mini',
           #'train': 'v1.0-trainval',
           #'val': 'v1.0-trainval',
           #'test': 'v1.0-test',
@@ -43,7 +46,7 @@ SCENE_SPLITS = {
     
 NUM_SWEEPS_LIDAR=3
 
-OUT_PATH='/home/toytiny/Desktop/RadarNet2/figures/'
+OUT_PATH='/home/mook/RadarNet-pytorch/figures/'
 
 
 def scale_to_255(a, min, max, dtype=np.uint8):

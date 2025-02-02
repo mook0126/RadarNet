@@ -38,7 +38,7 @@ from PIL import Image, ImageDraw
 
 
 def draw_box(img,draw,res,color):
-    
+
 
     x=res[0]
     y=res[1]
@@ -87,184 +87,199 @@ def draw_box(img,draw,res,color):
 
 
 def test(opt):
-    
+
     #torch.cuda.manual_seed(opt.seed)
     torch.backends.cudnn.benchmark = True
     use_gpu = torch.cuda.is_available()
-  
+
     device=torch.device("cuda:0" if use_gpu else "cpu")
-    
-    base_path="/home/toytiny/Desktop/RadarNet2/train_result/"
-    
-    data_path='/home/toytiny/Desktop/RadarNet/data/nuscenes/'
-    
+
+    base_path = "/home/mook/RadarNet-pytorch/train_result/"
+    data_path = "/home/mook/RadarNet-pytorch/data/"
+
+    #base_path="/home/toytiny/Desktop/RadarNet2/train_result/"
+
+    #data_path='/home/toytiny/Desktop/RadarNet/data/nuscenes/'
+
     test_path=base_path+"test.txt"
-    
+
     with open(test_path, 'w') as f:
         f.write('This file records the test results\n')
-        
-        
+
+
     model_path=base_path+"model/"
-    
+
     load_checkpoint=True
-    
+
     visualization=True
-    
-    fig_path='/home/toytiny/Desktop/RadarNet2/figures/mini_val/'
-    
-    res_path='/home/toytiny/Desktop/RadarNet2/res_figures/'
+
+    fig_path='/home/mook/RadarNet-pytorch/figures/mini_train/'
+
+    res_path='/home/mook/RadarNet-pytorch/res_figures_train/'
     if not os.path.exists(res_path):
         os.mkdir(res_path)
     model_files=sorted(os.listdir(model_path),key=lambda x:eval(x.split("-")[1].split(".")[0]))
     model_check=model_files[-1]
-        
+
     print('Loading checkpoint model '+model_check,'for test')
-        
+
     load_model=torch.load(model_path+model_check,map_location='cuda:0')
+    print(load_model.keys())  # 딕셔너리의 키를 출력하여 "backbone"이 있는지 확인
+
     #BBNet=Backbone(102).to(device)
-    BBNet=load_model["backbone"]
-    #Header_car=Header().to(device) 
-    Header_car=load_model["header"]
+    #BBNet=load_model["backbone"]
+    #Header_car=Header().to(device)
+    #Header_car=load_model["header"]
+
+    # 모델 객체 생성
+    BBNet = Backbone(38).to(device)
+    Header_car = Header().to(device)
+
+    # 가중치 로드
+    BBNet.load_state_dict(load_model["backbone"])
+    Header_car.load_state_dict(load_model["header"])
 
     BBNet.eval()
     Header_car.eval()
     print('Setting up testing data...')
     test_loader = torch.utils.data.DataLoader(
-            nuScenes(opt, opt.train_split, data_path), batch_size=1, 
-            shuffle=True, num_workers=1, 
+            nuScenes(opt, opt.train_split, data_path), batch_size=1,
+            shuffle=True, num_workers=1,
             pin_memory=True,drop_last=True)
-    
-    batch_size=4;
+
+    batch_size=8;
     iter_ind=0
     aver_ap=torch.zeros(1).to(device)
     iter_test=np.floor(len(test_loader)/batch_size)
-    
 
-    
+
+
     nms_thres=[0.05]
-  
+
     max_keep=[200]
-  
+
     for i in range(0,len(nms_thres)):
         for j in range(0,len(max_keep)):
-          
+
             thres=nms_thres[i]
             max_det=max_keep[j]
-    
-    
+
+
             with torch.no_grad():
-                
+
                 for ind, (gt,voxel,filename) in enumerate(test_loader):
-                    
-                    
+
+
                     # whether to initilizate the iteration
                     if ind%batch_size==0:
-                            
+
                         input_voxels=torch.Tensor([])
                         gt_cars=[]
                         iter_ind+=1
                         test_ap=torch.zeros(1).to(device)
                         filenames=[]
                         print('Starting iter-{} for testing'.format(int(iter_ind)))
-                         
+
                     input_voxels=torch.cat([input_voxels,voxel],dim=0)
                     gt_cars.append(gt.reshape((gt.size()[1],gt.size()[2])))
                     filenames.append(filename)
                         # whether to continue
                     if not (ind+1)%batch_size==0:
                         continue
-                        
+
                     else:
-                            
+
                         # Through the network
                         input_voxels = input_voxels.float().to(device)
                         backbones=BBNet(input_voxels)
                         cls_cars, reg_cars=Header_car(backbones)
                         # c x y w l theta x_p y_p
                         car_dets= output_process(cls_cars,reg_cars,device,batch_size)
-                            
+
                         for k in range(0,batch_size):
-                                
+
                             gt_car=gt_cars[k].to(device)
-                             
+
                             car_det=car_dets[k].t()
-                                
+
                             car_output=NMS(car_det,thres,max_det)
-                            
+
                             if visualization:
-                                
+
                                 filename=filenames[k]
                                 bev_name='bev'+filename[0][4:-5]+'.jpg'
+                                #bev_name = 'bev_scenes-1_pcs-1' + '.jpg'
+
                                 bev_path=fig_path+bev_name
                                 save_path=res_path+bev_name
                                 gt_all=gt_car.cpu()
                                 pre_all=car_output.cpu()
-                                
-                        
+
+
                                 img = Image.open(bev_path)
                                 img = img.convert('RGB')
                                 draw = ImageDraw.Draw(img)
-                                
-                                
-                                
+
+
+
                                 for i in range(0,gt_all.size()[0]):
-                                    
+
                                      draw_box(img,draw,gt_all[i,:].numpy(),(0,255,0))
-                                     
+
                                 for j in range(0,pre_all.size()[0]):
-                                    
+
                                      draw_box(img,draw,pre_all[j,1:].numpy(),(255,0,0))
-                                     
-                                img.save(save_path)    
-                                    
-                                    
+
+                                img.save(save_path)
+
+
                                     #p1=(gt_all[i,0:2]-gt_all[i,2:4]/2).numpy()
                                     #p2=(gt_all[i,0:2]+gt_all[i,2:4]/2).numpy()
-                                    
+
                                     # p1=(gt_all[i,0:2]-4).numpy()
                                     # p2=(gt_all[i,0:2]+4).numpy()
-                                    
+
                                     # cv2.rectangle(bev_fig, (int(p1[0]),int(p1[1])),\
                                     #               (int(p2[0]),int(p2[1])),(255,255,0), 2)
-                                
+
                                 # for j in range(0,car_output.size()[0]):
-                                    
+
                                 #     p1=(pre_all[j,1:3]-6).numpy()
                                 #     p2=(pre_all[j,1:3]+6).numpy()
-                                    
+
                                 #     cv2.rectangle(bev_fig, (int(p1[0]),int(p1[1])),\
                                 #                   (int(p2[0]),int(p2[1])),(0,255,255), 2)
                                 #cv2.imshow('head', bev_fig)
-                                #cv2.waitKey(0) 
+                                #cv2.waitKey(0)
                                 #print(1)
-                                
+
                                 #cv2.imwrite(bev_path, bev_fig)   #save picture
-                                
-                                
-                            
+
+
+
                             AP=evaluate_result(car_output,gt_car,device)
-                            
+
                             test_ap=test_ap+AP
-                                
-                        test_ap=test_ap/batch_size   
+
+                        test_ap=test_ap/batch_size
                         ap_msg='The AP of iter-{} is {}'.format(iter_ind,test_ap.item())+'\n'
                         print(ap_msg)
-                            
+
                     aver_ap=aver_ap+test_ap
-                            
-                aver_ap=aver_ap/iter_test 
-                
+
+                aver_ap=aver_ap/iter_test
+
                 test_msg='AP for {} samples: {}   nms_thres={}  max_det={}\n'.format(len(test_loader),aver_ap.item(),thres,max_det)
                 print(test_msg)
                 with open(test_path,'a') as f:
                     f.write(test_msg)
-                   
-                
+
+
 
 if __name__ == '__main__':
-  
-  opt = opts().parse()
-  
 
-  
+  opt = opts().parse()
+
+
+
   test(opt)

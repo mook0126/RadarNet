@@ -25,11 +25,13 @@ from pyquaternion import Quaternion
 from nuscenes.utils.data_classes import LidarPointCloud, RadarPointCloud
 from pointcloud import LidarPointCloud2 as LidarPointCloud
 from pointcloud import RadarPointCloud2 as RadarPointCloud
-DATA_PATH = '/home/toytiny/Desktop/RadarNet/data/nuscenes/'
+DATA_PATH = '/home/mook/RadarNet-pytorch/data/nuscenes'
+
+
 OUT_PATH_PC = DATA_PATH + 'voxel_representations/'
 OUT_PATH_AN = DATA_PATH + 'annotations/'
 SPLITS = {
-          #'mini_val': 'v1.0-mini',
+          'mini_val': 'v1.0-mini',
           'mini_train': 'v1.0-mini',
           #'train': 'v1.0-trainval',
           #'val': 'v1.0-trainval',
